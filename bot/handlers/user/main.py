@@ -1,6 +1,7 @@
 from aiogram import Router
 from aiogram.filters.command import Command, CommandStart
 from aiogram.types import Message
+from bot.database.models import User
 
 user_router = Router(name="user")
 
