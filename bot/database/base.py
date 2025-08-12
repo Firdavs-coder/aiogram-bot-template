@@ -1,3 +1,1 @@
-from sqlalchemy.orm import declarative_base
-
-Base = declarative_base()
+# Placeholder for sqlite3 connection setup (no ORM base needed)

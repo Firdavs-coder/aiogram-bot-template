@@ -1,9 +1,10 @@
-from sqlalchemy import Column, Integer, BigInteger
+# Direct SQL for users table creation using sqlite3
+import sqlite3
 
-from bot.database.base import Base
-
-
-class User(Base):
-    __tablename__ = "users"
-
-    id = Column(BigInteger, primary_key=True, unique=True, autoincrement=False)
+def create_users_table(conn):
+    with conn:
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY UNIQUE
+            )
+        ''')

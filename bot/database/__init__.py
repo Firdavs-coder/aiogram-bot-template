@@ -1,2 +1,1 @@
-from .base import Base
-from .models import User
+# No ORM base or models to import for sqlite3

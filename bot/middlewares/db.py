@@ -1,21 +1,24 @@
 from typing import Callable, Awaitable, Dict, Any
-
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject
-from sqlalchemy.ext.asyncio import async_sessionmaker
-
+import sqlite3
 
 class DbSessionMiddleware(BaseMiddleware):
-    def __init__(self, session_pool: async_sessionmaker):
+    def __init__(self, db_path: str):
         super().__init__()
-        self.session_pool = session_pool
+        self.db_path = db_path
 
     async def __call__(
-            self,
-            handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
-            event: TelegramObject,
-            data: Dict[str, Any],
+        self,
+        handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
+        event: TelegramObject,
+        data: Dict[str, Any],
     ) -> Any:
-        async with self.session_pool() as session:
-            data["session"] = session
-            return await handler(event, data)
+        # Open a new sqlite3 connection per request
+        conn = sqlite3.connect(self.db_path)
+        data["db_conn"] = conn
+        try:
+            result = await handler(event, data)
+        finally:
+            conn.close()
+        return result

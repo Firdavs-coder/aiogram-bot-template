@@ -1,10 +1,10 @@
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+import sqlite3
 
 from bot.misc import TgKeys
-from bot.database import Base
+from bot.database.models import create_users_table
 from bot.filters import register_all_filters
 from bot.handlers import register_all_handlers
 from bot.middlewares import DbSessionMiddleware
@@ -26,12 +26,15 @@ async def start_bot():
     """
     Main function to start the bot.
     """
-    engine = create_async_engine(TgKeys.DB_URL, echo=False)
-    sessionmaker = async_sessionmaker(engine, expire_on_commit=False)
+    # Setup sqlite3 database and create tables
+    db_path = './db.sqlite3'
+    conn = sqlite3.connect(db_path)
+    create_users_table(conn)
+    conn.close()
 
     bot = Bot(token=TgKeys.TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
     dp = Dispatcher(storage=MemoryStorage())
-    dp.update.middleware(DbSessionMiddleware(session_pool=sessionmaker))
+    dp.update.middleware(DbSessionMiddleware(db_path=db_path))
 
     # Register on_startup function for dispatcher startup
     await on_startup(dp)
