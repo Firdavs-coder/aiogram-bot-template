@@ -1,11 +1,10 @@
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
-import sqlite3
 import logging
 
 from bot.misc import TgKeys
-from bot.database.models import User
+from bot.database.session import get_session
 from bot.filters import register_all_filters
 from bot.handlers import register_all_handlers
 from bot.middlewares import DatabaseMiddleware
@@ -47,20 +46,15 @@ async def start_bot():
     """
     logger.info("Initializing bot...")
     
-    # Setup sqlite3 database and create tables
-    db_path = './db.sqlite3'
-    logger.info(f"Setting up database at {db_path}")
-    conn = sqlite3.connect(db_path)
-    User.create_table(conn)
-    conn.close()
-    logger.info("Database setup completed")
+    # Initialize SQLAlchemy database (tables are created automatically in session.py)
+    logger.info("Database initialized with SQLAlchemy")
 
     bot = Bot(token=TgKeys.TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
     dp = Dispatcher(storage=MemoryStorage())
     
     # Register middleware
-    dp.message.middleware(DatabaseMiddleware(db_path=db_path))
-    dp.callback_query.middleware(DatabaseMiddleware(db_path=db_path))
+    dp.message.middleware(DatabaseMiddleware())
+    dp.callback_query.middleware(DatabaseMiddleware())
     logger.info("Middleware registered")
 
     # Register on_startup function for dispatcher startup

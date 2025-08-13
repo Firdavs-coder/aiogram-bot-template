@@ -1,9 +1,11 @@
-import sqlite3
 import logging
 from typing import Callable, Awaitable, Dict, Any
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject, Message
-from bot.database.models import User
+from sqlalchemy.orm import Session
+
+from bot.database.session import get_session
+from bot.database.crud import UserCRUD
 
 logger = logging.getLogger(__name__)
 
@@ -11,10 +13,9 @@ logger = logging.getLogger(__name__)
 class DatabaseMiddleware(BaseMiddleware):
     """Middleware for database operations and automatic user saving"""
     
-    def __init__(self, db_path: str):
+    def __init__(self):
         super().__init__()
-        self.db_path = db_path
-        logger.info(f"DatabaseMiddleware initialized with db_path: {db_path}")
+        logger.info("DatabaseMiddleware initialized with SQLAlchemy")
 
     async def __call__(
         self,
@@ -22,28 +23,31 @@ class DatabaseMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: Dict[str, Any],
     ) -> Any:
-        # Create database connection for this request
-        conn = sqlite3.connect(self.db_path)
-        data["db_conn"] = conn
+        # Create database session for this request
+        session = get_session()
+        data["session"] = session
+        data["user_crud"] = UserCRUD(session)
         
         try:
             # Auto-save user information if event is a Message
             if isinstance(event, Message) and event.from_user:
-                user = User(
+                user_crud = data["user_crud"]
+                user = user_crud.create_user(
                     user_id=event.from_user.id,
                     name=event.from_user.full_name
                 )
-                user.save(conn)
-                logger.info(f"User saved: ID={user.id}, Name={user.name}")
+                data["current_user"] = user
+                logger.info(f"User processed: ID={user.id}, Name={user.name}")
             
             # Continue with handler execution
             result = await handler(event, data)
             
         except Exception as e:
             logger.error(f"Error in DatabaseMiddleware: {e}")
+            session.rollback()
             raise
         finally:
-            # Always close the connection
-            conn.close()
+            # Always close the session
+            session.close()
             
         return result
