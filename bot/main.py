@@ -28,10 +28,8 @@ async def on_startup(dp: Dispatcher, bot: Bot) -> None:
     register_all_handlers(dp)
     
     # Send startup message to all admins
-    admin_ids = TgKeys.ADMINS.split(',') if ',' in TgKeys.ADMINS else [TgKeys.ADMINS]
-    for admin_id in admin_ids:
+    for admin_id in TgKeys.ADMINS:
         try:
-            admin_id = int(admin_id.strip())
             await bot.send_message(admin_id, "🤖 Bot has started successfully!")
             logger.info(f"Startup notification sent to admin {admin_id}")
         except Exception as e:
